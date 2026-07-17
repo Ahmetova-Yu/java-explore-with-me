@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.stats.dto.EndpointHitDto;
 import ru.practicum.ewm.stats.dto.ViewStatsDto;
+import ru.practicum.ewm.stats.server.exception.InvalidDateRangeException;
 import ru.practicum.ewm.stats.server.service.StatsService;
 
 import java.time.LocalDateTime;
@@ -32,6 +33,13 @@ public class StatsController {
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime end,
             @RequestParam(required = false) List<String> uris,
             @RequestParam(defaultValue = "false") Boolean unique) {
+
+        if (start.isAfter(end)) {
+            log.warn("Invalid date range: start={} is after end={}", start, end);
+            throw new InvalidDateRangeException(
+                    "Дата начала (start) не может быть позже даты окончания (end)"
+            );
+        }
 
         if (uris != null) {
             uris = uris.stream()
