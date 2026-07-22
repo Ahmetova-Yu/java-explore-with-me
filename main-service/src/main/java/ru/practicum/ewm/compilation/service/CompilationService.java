@@ -108,16 +108,21 @@ public class CompilationService {
     public List<CompilationDto> getCompilations(Boolean pinned, Integer from, Integer size) {
         log.debug("Получение подборок: pinned={}, from={}, size={}", pinned, from, size);
 
-        Pageable pageable = PaginationUtil.of(from, size);
-        List<Compilation> compilations = compilationRepository.findAllWithFilter(pinned, pageable);
+        try {
+            Pageable pageable = PaginationUtil.of(from, size);
+            List<Compilation> compilations = compilationRepository.findAllWithFilter(pinned, pageable);
 
-        if (compilations == null) {
-            return Collections.emptyList();
+            if (compilations == null || compilations.isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            return compilations.stream()
+                    .map(c -> compilationMapper.toDto(c, Collections.emptyMap()))
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Ошибка при получении подборок: {}", e.getMessage(), e);
+            throw new RuntimeException("Не удалось получить подборки: " + e.getMessage());
         }
-
-        return compilations.stream()
-                .map(c -> compilationMapper.toDto(c, Collections.emptyMap()))
-                .collect(Collectors.toList());
     }
 
     public CompilationDto getCompilation(Long compId) {

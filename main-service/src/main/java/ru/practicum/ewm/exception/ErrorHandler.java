@@ -13,6 +13,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
@@ -133,5 +134,17 @@ public class ErrorHandler {
                 .message(String.format("Required request parameter '%s' is not present", e.getParameterName()))
                 .timestamp(LocalDateTime.now())
                 .build();
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public Map<String, Object> handleRuntime(RuntimeException e) {
+        log.error("500 Internal error: {}", e.getMessage(), e);
+        return Map.of(
+                "status", "INTERNAL_SERVER_ERROR",
+                "reason", "Unexpected error.",
+                "message", e.getMessage(),
+                "timestamp", LocalDateTime.now().toString()
+        );
     }
 }
