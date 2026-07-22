@@ -94,35 +94,26 @@ public class CompilationService {
     public void deleteCompilation(Long compId) {
         log.debug("Удаление подборки: id={}", compId);
 
-        Compilation compilation = compilationRepository.findById(compId)
-                .orElseThrow(() -> new NotFoundException(
-                        String.format("Подборка с id=%d не найдена", compId)));
-
         if (!compilationRepository.existsById(compId)) {
             throw new NotFoundException(String.format("Подборка с id=%d не найдена", compId));
         }
 
-        compilationRepository.delete(compilation);
+        compilationRepository.deleteById(compId);
     }
 
     public List<CompilationDto> getCompilations(Boolean pinned, Integer from, Integer size) {
         log.debug("Получение подборок: pinned={}, from={}, size={}", pinned, from, size);
 
-        try {
-            Pageable pageable = PaginationUtil.of(from, size);
-            List<Compilation> compilations = compilationRepository.findAllWithFilter(pinned, pageable);
+        Pageable pageable = PaginationUtil.of(from, size);
+        List<Compilation> compilations = compilationRepository.findAllWithFilter(pinned, pageable);
 
-            if (compilations == null || compilations.isEmpty()) {
-                return Collections.emptyList();
-            }
-
-            return compilations.stream()
-                    .map(c -> compilationMapper.toDto(c, Collections.emptyMap()))
-                    .collect(Collectors.toList());
-        } catch (Exception e) {
-            log.error("Ошибка при получении подборок: {}", e.getMessage(), e);
-            throw new RuntimeException("Не удалось получить подборки: " + e.getMessage());
+        if (compilations == null || compilations.isEmpty()) {
+            return Collections.emptyList();
         }
+
+        return compilations.stream()
+                .map(c -> compilationMapper.toDto(c, Collections.emptyMap()))
+                .collect(Collectors.toList());
     }
 
     public CompilationDto getCompilation(Long compId) {

@@ -22,6 +22,7 @@ public class CompilationMapper {
         if (compilation == null) {
             return null;
         }
+
         Map<Long, Long> safeViewsMap = viewsMap != null ? viewsMap : Collections.emptyMap();
 
         List<EventShortDto> events = Collections.emptyList();
