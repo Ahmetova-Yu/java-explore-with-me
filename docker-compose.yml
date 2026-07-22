@@ -12,11 +12,6 @@ services:
       - SPRING_DATASOURCE_USERNAME=dbuser
       - SPRING_DATASOURCE_PASSWORD=12345
       - TZ=Europe/Moscow
-    healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9090/actuator/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   stats-db:
     image: postgres:16.1
@@ -30,11 +25,6 @@ services:
       - TZ=Europe/Moscow
     volumes:
       - stats-db-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -q -d ewm-stats -U dbuser"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
 
   ewm-service:
     build: ./main-service
@@ -52,11 +42,6 @@ services:
       - SPRING_DATASOURCE_PASSWORD=12345
       - STATS_SERVER_URL=http://stats-server:9090
       - TZ=Europe/Moscow
-    healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   ewm-db:
     image: postgres:16.1
@@ -70,11 +55,6 @@ services:
       - TZ=Europe/Moscow
     volumes:
       - ewm-db-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -q -d ewm-main -U dbuser"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
 
 volumes:
   stats-db-data:
