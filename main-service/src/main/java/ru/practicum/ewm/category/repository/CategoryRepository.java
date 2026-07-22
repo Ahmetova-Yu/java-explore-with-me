@@ -11,4 +11,6 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
 
     @Query("SELECT EXISTS (SELECT 1 FROM Event e WHERE e.category.id = :categoryId)")
     boolean existsByCategoryId(@Param("categoryId") Long categoryId);
+
+    boolean existsByName(String name);
 }

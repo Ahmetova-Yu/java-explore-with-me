@@ -39,7 +39,7 @@ public class CategoryService {
     }
 
     @Transactional
-    public CategoryDto updateCategory(Long catId, CategoryDto dto) {
+    public CategoryDto updateCategory(Long catId, NewCategoryDto dto) {
         log.debug("Обновление категории: id={}, name={}", catId, dto.getName());
         Category category = getCategoryOrThrow(catId);
         if (dto.getName() != null && !dto.getName().isBlank()) {
