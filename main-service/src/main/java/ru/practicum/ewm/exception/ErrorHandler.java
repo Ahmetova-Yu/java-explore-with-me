@@ -13,7 +13,6 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
@@ -67,7 +66,7 @@ public class ErrorHandler {
         return ErrorResponse.builder()
                 .status(HttpStatus.BAD_REQUEST.name())
                 .reason("Incorrectly made request.")
-                .message(errors.isEmpty() ? "Validation failed" : errors.get(0))
+                .message(errors.isEmpty() ? "Validation failed" : errors.getFirst())
                 .errors(errors)
                 .timestamp(LocalDateTime.now())
                 .build();
@@ -93,7 +92,31 @@ public class ErrorHandler {
                 .status(HttpStatus.BAD_REQUEST.name())
                 .reason("Incorrectly made request.")
                 .message(String.format("Parameter %s must be of type %s",
-                        e.getName(), e.getRequiredType().getSimpleName()))
+                        e.getName(), e.getRequiredType() != null ? e.getRequiredType().getSimpleName() : "unknown"))
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleHttpMessageNotReadable(HttpMessageNotReadableException e) {
+        log.warn("400: {}", e.getMessage());
+        return ErrorResponse.builder()
+                .status(HttpStatus.BAD_REQUEST.name())
+                .reason("Incorrectly made request.")
+                .message("Required request body is missing")
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleMissingParam(MissingServletRequestParameterException e) {
+        log.warn("400: {}", e.getMessage());
+        return ErrorResponse.builder()
+                .status(HttpStatus.BAD_REQUEST.name())
+                .reason("Incorrectly made request.")
+                .message(String.format("Required request parameter '%s' is not present", e.getParameterName()))
                 .timestamp(LocalDateTime.now())
                 .build();
     }
@@ -108,43 +131,5 @@ public class ErrorHandler {
                 .message(e.getMessage())
                 .timestamp(LocalDateTime.now())
                 .build();
-    }
-
-    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorResponse handleHttpMessageNotReadable(HttpMessageNotReadableException e) {
-        log.warn("400: {}", e.getMessage());
-        return ErrorResponse.builder()
-                .status(HttpStatus.BAD_REQUEST.name())
-                .reason("Incorrectly made request.")
-                .message("Required request body is missing")
-                .timestamp(LocalDateTime.now())
-                .build();
-
-
-    }
-
-    @ExceptionHandler(org.springframework.web.bind.MissingServletRequestParameterException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorResponse handleMissingParam(MissingServletRequestParameterException e) {
-        log.warn("400: {}", e.getMessage());
-        return ErrorResponse.builder()
-                .status(HttpStatus.BAD_REQUEST.name())
-                .reason("Incorrectly made request.")
-                .message(String.format("Required request parameter '%s' is not present", e.getParameterName()))
-                .timestamp(LocalDateTime.now())
-                .build();
-    }
-
-    @ExceptionHandler(RuntimeException.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public Map<String, Object> handleRuntime(RuntimeException e) {
-        log.error("500 Internal error: {}", e.getMessage(), e);
-        return Map.of(
-                "status", "INTERNAL_SERVER_ERROR",
-                "reason", "Unexpected error.",
-                "message", e.getMessage(),
-                "timestamp", LocalDateTime.now().toString()
-        );
     }
 }
