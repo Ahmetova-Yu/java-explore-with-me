@@ -9,7 +9,7 @@ import java.util.List;
 
 public interface CompilationRepository extends JpaRepository<Compilation, Long> {
 
-    @Query("SELECT c FROM Compilation c WHERE (:pinned IS NULL OR c.pinned = :pinned)")
+    @Query("SELECT DISTINCT c FROM Compilation c LEFT JOIN FETCH c.events WHERE (:pinned IS NULL OR c.pinned = :pinned)")
     List<Compilation> findAllWithFilter(Boolean pinned, Pageable pageable);
 
     @Query("SELECT c FROM Compilation c LEFT JOIN FETCH c.events WHERE c.id = :id")
