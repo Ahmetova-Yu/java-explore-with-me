@@ -163,6 +163,17 @@ public class EventService {
                                                Integer from, Integer size,
                                                HttpServletRequest request) {
         log.debug("Public: поиск событий");
+
+        EventSort sort = null;
+        if (sortStr != null && !sortStr.isBlank()) {
+            try {
+                sort = EventSort.valueOf(sortStr);
+            } catch (IllegalArgumentException e) {
+                throw new BadRequestException(
+                        String.format("Field: sort. Error: Unknown sort type. Value: %s", sortStr));
+            }
+        }
+
         LocalDateTime rangeStart = rangeStartStr != null
                 ? parseDateTime(rangeStartStr, "rangeStart")
                 : LocalDateTime.now();
@@ -175,9 +186,24 @@ public class EventService {
         }
 
         Specification<Event> spec = EventSpecification.forPublic(text, categories, paid, rangeStart, rangeEnd, onlyAvailable);
-        Pageable pageable = buildPageable(from, size, sortStr);
+
+        Pageable pageable;
+        if (sort == EventSort.EVENT_DATE) {
+            pageable = PaginationUtil.of(from, size, Sort.by(Sort.Direction.ASC, "eventDate"));
+        } else {
+            pageable = PaginationUtil.of(from, size);
+        }
+
         List<Event> events = eventRepository.findAll(spec, pageable).getContent();
         Map<Long, Long> viewsMap = getViewsMap(events);
+
+        if (sort == EventSort.VIEWS) {
+            events = events.stream()
+                    .sorted(Comparator.comparingLong(
+                                    (Event e) -> viewsMap.getOrDefault(e.getId(), 0L))
+                            .reversed())
+                    .collect(Collectors.toList());
+        }
 
         saveHit(request);
 
@@ -286,18 +312,6 @@ public class EventService {
         if (request.getRequestModeration() != null) event.setRequestModeration(request.getRequestModeration());
     }
 
-    private Pageable buildPageable(Integer from, Integer size, String sortStr) {
-        if (sortStr == null || sortStr.isBlank()) {
-            return PaginationUtil.of(from, size, Sort.by(Sort.Direction.ASC, "eventDate"));
-        }
-        EventSort sort = EventSort.valueOf(sortStr);
-        if (sort == EventSort.EVENT_DATE) {
-            return PaginationUtil.of(from, size, Sort.by(Sort.Direction.ASC, "eventDate"));
-        } else {
-            return PaginationUtil.of(from, size, Sort.by(Sort.Direction.DESC, "eventDate"));
-        }
-    }
-
     private Map<Long, Long> getViewsMap(List<Event> events) {
         if (events.isEmpty()) return Collections.emptyMap();
         List<String> uris = events.stream()
@@ -367,6 +381,15 @@ public class EventService {
         } catch (IllegalArgumentException e) {
             throw new BadRequestException(
                     String.format("Field: stateAction. Error: Unknown state action. Value: %s", stateActionStr));
+        }
+    }
+
+    private EventSort parseSort(String sortStr) {
+        try {
+            return EventSort.valueOf(sortStr);
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException(
+                    String.format("Field: sort. Error: Unknown sort type. Value: %s", sortStr));
         }
     }
 }
