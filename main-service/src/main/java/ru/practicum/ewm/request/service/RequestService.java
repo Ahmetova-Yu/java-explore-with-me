@@ -58,7 +58,7 @@ public class RequestService {
             throw new ConflictException("Request already exists");
         }
 
-        if (event.getParticipantLimit() != 0 && !event.getRequestModeration()) {
+        if (event.getParticipantLimit() != 0) {
             long confirmed = requestRepository.countByEventIdAndStatus(eventId, RequestStatus.CONFIRMED);
             if (confirmed >= event.getParticipantLimit()) {
                 throw new ConflictException("Participant limit has been reached");
@@ -147,7 +147,6 @@ public class RequestService {
                 currentConfirmed++;
 
                 if (limit != 0 && currentConfirmed >= limit) {
-                    // Отклоняем все оставшиеся PENDING заявки
                     List<Request> pending = requestRepository.findAllByEventIdAndStatus(eventId, RequestStatus.PENDING);
                     for (Request p : pending) {
                         if (!request.getRequestIds().contains(p.getId())) {
