@@ -14,11 +14,12 @@ import ru.practicum.ewm.compilation.repository.CompilationRepository;
 import ru.practicum.ewm.event.model.Event;
 import ru.practicum.ewm.event.repository.EventRepository;
 import ru.practicum.ewm.exception.NotFoundException;
+import ru.practicum.ewm.stats.client.StatsClient;
+import ru.practicum.ewm.stats.dto.ViewStatsDto;
 import ru.practicum.ewm.util.PaginationUtil;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,6 +30,7 @@ public class CompilationService {
     private final CompilationRepository compilationRepository;
     private final EventRepository eventRepository;
     private final CompilationMapper compilationMapper;
+    private final StatsClient statsClient;  // ← добавить!
 
     @Transactional
     public CompilationDto saveCompilation(NewCompilationDto dto) {
@@ -68,7 +70,8 @@ public class CompilationService {
             }
         }
 
-        return compilationMapper.toDto(compilation, Collections.emptyMap());
+        Compilation updated = compilationRepository.save(compilation);
+        return compilationMapper.toDto(updated, Collections.emptyMap());
     }
 
     @Transactional
@@ -81,8 +84,17 @@ public class CompilationService {
     public List<CompilationDto> getCompilations(Boolean pinned, Integer from, Integer size) {
         log.debug("Получение подборок: pinned={}, from={}, size={}", pinned, from, size);
         Pageable pageable = PaginationUtil.of(from, size);
-        return compilationRepository.findAllWithFilter(pinned, pageable).stream()
-                .map(c -> compilationMapper.toDto(c, Collections.emptyMap()))
+        List<Compilation> compilations = compilationRepository.findAllWithFilter(pinned, pageable);
+
+        Set<Long> allEventIds = compilations.stream()
+                .flatMap(c -> c.getEvents().stream())
+                .map(Event::getId)
+                .collect(Collectors.toSet());
+
+        Map<Long, Long> viewsMap = getViewsMap(allEventIds);
+
+        return compilations.stream()
+                .map(c -> compilationMapper.toDto(c, viewsMap))
                 .collect(Collectors.toList());
     }
 
@@ -92,12 +104,58 @@ public class CompilationService {
         if (compilation == null) {
             throw new NotFoundException(String.format("Compilation with id=%d was not found", compId));
         }
-        return compilationMapper.toDto(compilation, Collections.emptyMap());
+
+        Set<Long> eventIds = compilation.getEvents().stream()
+                .map(Event::getId)
+                .collect(Collectors.toSet());
+
+        Map<Long, Long> viewsMap = getViewsMap(eventIds);
+
+        return compilationMapper.toDto(compilation, viewsMap);
     }
 
     private Compilation getCompilationOrThrow(Long compId) {
         return compilationRepository.findById(compId)
                 .orElseThrow(() -> new NotFoundException(
                         String.format("Compilation with id=%d was not found", compId)));
+    }
+
+    private Map<Long, Long> getViewsMap(Set<Long> eventIds) {
+        if (eventIds == null || eventIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        List<String> uris = eventIds.stream()
+                .map(id -> "/events/" + id)
+                .collect(Collectors.toList());
+
+        try {
+            LocalDateTime start = LocalDateTime.of(2000, 1, 1, 0, 0);
+            LocalDateTime end = LocalDateTime.now();
+
+            List<ViewStatsDto> stats = statsClient.getStats(start, end, uris, true).getBody();
+
+            if (stats == null) {
+                return Collections.emptyMap();
+            }
+
+            Map<Long, Long> result = new HashMap<>();
+            for (ViewStatsDto stat : stats) {
+                try {
+                    Long id = Long.parseLong(stat.getUri().replace("/events/", ""));
+                    result.put(id, stat.getHits());
+                } catch (NumberFormatException ignored) {
+                }
+            }
+
+            for (Long id : eventIds) {
+                result.putIfAbsent(id, 0L);
+            }
+
+            return result;
+        } catch (Exception e) {
+            log.warn("Не удалось получить статистику просмотров для подборок: {}", e.getMessage());
+            return Collections.emptyMap();
+        }
     }
 }
