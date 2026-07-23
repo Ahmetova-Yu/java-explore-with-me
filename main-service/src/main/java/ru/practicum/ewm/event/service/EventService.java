@@ -49,6 +49,10 @@ public class EventService {
     private final EventMapper eventMapper;
     private final StatsClient statsClient;
 
+    // ============================================
+    // Private API: события пользователя
+    // ============================================
+
     @Transactional
     public EventFullDto addEvent(Long userId, NewEventDto dto) {
         log.debug("Создание события пользователем: userId={}", userId);
@@ -111,6 +115,10 @@ public class EventService {
         return eventMapper.toFullDto(updated, views);
     }
 
+    // ============================================
+    // Admin API
+    // ============================================
+
     public List<EventFullDto> getEventsForAdmin(List<Long> users, List<String> states,
                                                 List<Long> categories, String rangeStartStr,
                                                 String rangeEndStr, Integer from, Integer size) {
@@ -144,6 +152,10 @@ public class EventService {
         Long views = getViewsForEvent(eventId);
         return eventMapper.toFullDto(updated, views);
     }
+
+    // ============================================
+    // Public API
+    // ============================================
 
     public List<EventShortDto> getPublicEvents(String text, List<Long> categories, Boolean paid,
                                                String rangeStartStr, String rangeEndStr,
@@ -188,6 +200,10 @@ public class EventService {
         saveHit(request);
         return eventMapper.toFullDto(event, views);
     }
+
+    // ============================================
+    // Вспомогательные методы
+    // ============================================
 
     private void applyUserUpdate(Event event, UpdateEventUserRequest request) {
         if (request.getAnnotation() != null) event.setAnnotation(request.getAnnotation());
