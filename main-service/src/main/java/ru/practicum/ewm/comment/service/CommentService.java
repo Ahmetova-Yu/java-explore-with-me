@@ -60,7 +60,7 @@ public class CommentService {
     public List<CommentDto> getCommentsByEvent(Long eventId, Integer from, Integer size) {
         log.debug("Получение комментариев к событию: eventId={}", eventId);
 
-        Pageable pageable = PageRequest.of(from / size, size, Sort.by("created").descending());
+        Pageable pageable = PageRequest.of(from / size, size, Sort.by("createdOn").descending());
 
         return commentRepository.findAllByEventId(eventId, pageable).stream()
                 .map(commentMapper::toDto)
