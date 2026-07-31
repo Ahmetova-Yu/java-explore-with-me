@@ -18,7 +18,8 @@ import ru.practicum.ewm.exception.ConflictException;
 import ru.practicum.ewm.exception.NotFoundException;
 import ru.practicum.ewm.user.model.User;
 import ru.practicum.ewm.user.repository.UserRepository;
-import ru.practicum.ewm.util.PaginationUtil;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -59,11 +60,8 @@ public class CommentService {
     public List<CommentDto> getCommentsByEvent(Long eventId, Integer from, Integer size) {
         log.debug("Получение комментариев к событию: eventId={}", eventId);
 
-        if (!eventRepository.existsById(eventId)) {
-            throw new NotFoundException(String.format("Event with id=%d was not found", eventId));
-        }
+        Pageable pageable = PageRequest.of(from / size, size, Sort.by("created").descending());
 
-        Pageable pageable = PaginationUtil.of(from, size);
         return commentRepository.findAllByEventId(eventId, pageable).stream()
                 .map(commentMapper::toDto)
                 .collect(Collectors.toList());
