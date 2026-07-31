@@ -119,8 +119,6 @@ public class ErrorHandler {
                 .message("Required request body is missing")
                 .timestamp(LocalDateTime.now())
                 .build();
-
-
     }
 
     @ExceptionHandler(org.springframework.web.bind.MissingServletRequestParameterException.class)
@@ -131,6 +129,23 @@ public class ErrorHandler {
                 .status(HttpStatus.BAD_REQUEST.name())
                 .reason("Incorrectly made request.")
                 .message(String.format("Required request parameter '%s' is not present", e.getParameterName()))
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
+
+    @ExceptionHandler(jakarta.validation.ConstraintViolationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleConstraintViolation(jakarta.validation.ConstraintViolationException e) {
+        log.warn("400: {}", e.getMessage());
+
+        String message = e.getConstraintViolations().stream()
+                .map(violation -> violation.getMessage())
+                .collect(Collectors.joining(", "));
+
+        return ErrorResponse.builder()
+                .status(HttpStatus.BAD_REQUEST.name())
+                .reason("Incorrectly made request.")
+                .message(message)
                 .timestamp(LocalDateTime.now())
                 .build();
     }
