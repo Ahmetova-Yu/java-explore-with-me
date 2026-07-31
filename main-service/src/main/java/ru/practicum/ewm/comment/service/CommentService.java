@@ -11,8 +11,10 @@ import ru.practicum.ewm.comment.dto.UpdateCommentDto;
 import ru.practicum.ewm.comment.mapper.CommentMapper;
 import ru.practicum.ewm.comment.model.Comment;
 import ru.practicum.ewm.comment.repository.CommentRepository;
+import ru.practicum.ewm.event.enums.State;
 import ru.practicum.ewm.event.model.Event;
 import ru.practicum.ewm.event.repository.EventRepository;
+import ru.practicum.ewm.exception.ConflictException;
 import ru.practicum.ewm.exception.NotFoundException;
 import ru.practicum.ewm.user.model.User;
 import ru.practicum.ewm.user.repository.UserRepository;
@@ -44,6 +46,10 @@ public class CommentService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new NotFoundException(
                         String.format("Event with id=%d was not found", eventId)));
+
+        if (event.getState() != State.PUBLISHED) {
+            throw new ConflictException("Нельзя комментировать неопубликованное событие");
+        }
 
         Comment comment = commentMapper.toEntity(dto, event, author);
         Comment saved = commentRepository.save(comment);
